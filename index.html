@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BGO Toolkit</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-left">
+      <h1 class="app-title">BGO Toolkit</h1>
+      <nav class="app-nav" role="navigation" aria-label="Navigasi utama">
+        <button type="button" class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button type="button" class="nav-btn" data-view="notepad">Notepad</button>
+        <button type="button" class="nav-btn" data-view="calculator">Kalkulator</button>
+      </nav>
+    </div>
+    <span class="save-indicator" id="saveIndicator" aria-live="polite"></span>
+  </header>
+
+  <main class="app-main">
+    <!-- Dashboard -->
+    <section id="view-dashboard" class="view active" aria-label="Dashboard">
+      <div class="toolbar">
+        <h2 class="view-title">Dashboard</h2>
+        <div class="filter-bar" id="dashboardFilters"></div>
+      </div>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <span class="stat-label">Total Aplikasi</span>
+          <span class="stat-value" id="statTotalAplikasi">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Nilai BG</span>
+          <span class="stat-value" id="statTotalNilaiBG">Rp0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Provisi</span>
+          <span class="stat-value" id="statTotalProvisi">Rp0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Pending</span>
+          <span class="stat-value" id="statTotalPending">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Process</span>
+          <span class="stat-value" id="statTotalProcess">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Done</span>
+          <span class="stat-value" id="statTotalDone">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notepad -->
+    <section id="view-notepad" class="view" aria-label="Notepad Aplikasi BG">
+      <div class="toolbar">
+        <h2 class="view-title">Notepad Aplikasi BG</h2>
+        <div class="toolbar-actions">
+          <input
+            type="search"
+            id="notepadSearch"
+            class="search-input"
+            placeholder="Cari Applicant, No BG, No Registrasi, No Aplikasi, Cabang..."
+            autocomplete="off"
+          >
+          <button type="button" class="btn btn-primary" id="btnAddRow" title="Ctrl+N">+ Baris Baru</button>
+        </div>
+      </div>
+      <div class="filter-bar" id="notepadFilters"></div>
+      <div class="table-wrap">
+        <table class="data-table" id="notepadTable">
+          <thead>
+            <tr>
+              <th class="col-action" scope="col">Aksi</th>
+              <th class="sortable" data-sort="tanggal" data-label="Tanggal" scope="col">Tanggal</th>
+              <th scope="col">Applicant</th>
+              <th class="sortable" data-sort="nilaiBG" data-label="Nilai BG" scope="col">Nilai BG</th>
+              <th scope="col">No BG</th>
+              <th scope="col">No Registrasi</th>
+              <th scope="col">Nama File</th>
+              <th scope="col">No Aplikasi</th>
+              <th scope="col">Nilai Provisi</th>
+              <th scope="col">Kode Cabang</th>
+              <th class="sortable" data-sort="namaCabang" data-label="Nama Cabang" scope="col">Nama Cabang</th>
+              <th scope="col">Jenis BG</th>
+              <th class="sortable" data-sort="status" data-label="Status" scope="col">Status</th>
+              <th scope="col">Note</th>
+            </tr>
+          </thead>
+          <tbody id="notepadBody"></tbody>
+        </table>
+        <p class="empty-state hidden" id="notepadEmpty">Tidak ada data. Tekan + Baris Baru atau Ctrl+N.</p>
+      </div>
+    </section>
+
+    <!-- Kalkulator Provisi -->
+    <section id="view-calculator" class="view" aria-label="Kalkulator Provisi">
+      <div class="toolbar">
+        <h2 class="view-title">Kalkulator Provisi</h2>
+      </div>
+      <div class="calc-layout">
+        <div class="calc-form-panel">
+          <div class="calc-form">
+            <div class="form-section">
+              <span class="form-section-label">Applicant</span>
+              <div id="calcApplicantsList" class="calc-applicants-list"></div>
+              <button type="button" class="btn btn-add-applicant" id="btnAddApplicant">+ Tambah Applicant</button>
+              <span class="field-error hidden" id="errApplicants"></span>
+            </div>
+            <div class="form-row">
+              <label for="calcCover">Cover Jaminan</label>
+              <select id="calcCover" class="form-input" tabindex="6">
+                <option value="">— Pilih —</option>
+                <option value="Rekening Setoran Jaminan">Rekening Setoran Jaminan</option>
+                <option value="Setor Jaminan 100%">Setor Jaminan 100%</option>
+                <option value="Setor Jaminan <100% (Fasilitas)">Setor Jaminan &lt;100% (Fasilitas)</option>
+                <option value="Kontra Asuransi">Kontra Asuransi</option>
+              </select>
+              <span class="field-error hidden" id="errCover"></span>
+            </div>
+            <div class="form-row">
+              <label for="calcJenisBG">Jenis BG</label>
+              <select id="calcJenisBG" class="form-input" tabindex="7">
+                <option value="">— Pilih —</option>
+                <option value="Jaminan Penawaran">Jaminan Penawaran</option>
+                <option value="Jaminan Sanggah Banding">Jaminan Sanggah Banding</option>
+                <option value="Jaminan Pelaksanaan">Jaminan Pelaksanaan</option>
+                <option value="Jaminan Pemeliharaan">Jaminan Pemeliharaan</option>
+                <option value="Jaminan Pembayaran">Jaminan Pembayaran</option>
+                <option value="Jaminan Uang Muka">Jaminan Uang Muka</option>
+                <option value="Jaminan Jenis Lainnya">Jaminan Jenis Lainnya</option>
+              </select>
+              <span class="field-error hidden" id="errJenisBG"></span>
+            </div>
+            <div class="form-row">
+              <label for="calcNilaiBG">Nilai BG</label>
+              <input type="text" id="calcNilaiBG" class="form-input" autocomplete="off" placeholder="0" inputmode="numeric">
+              <span class="field-error hidden" id="errNilaiBG"></span>
+            </div>
+            <div class="form-row">
+              <label class="checkbox-label">
+                <input type="checkbox" id="calcTarifKhusus"> Tarif Khusus
+              </label>
+            </div>
+            <div id="calcTarifKhususFields" class="calc-special-fields hidden">
+              <div class="form-row">
+                <label for="calcRateKhusus">Rate Khusus (%)</label>
+                <input type="text" id="calcRateKhusus" class="form-input" autocomplete="off" placeholder="0">
+                <span class="field-error hidden" id="errRateKhusus"></span>
+              </div>
+              <div class="form-row">
+                <label for="calcBasisKhusus">Basis Hitung</label>
+                <select id="calcBasisKhusus" class="form-input">
+                  <option value="kuartal">Per Kuartal</option>
+                  <option value="annum">Per Annum</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="calcMinProvisi">Minimum Provisi</label>
+                <input type="text" id="calcMinProvisi" class="form-input" autocomplete="off" placeholder="1000000" inputmode="numeric">
+                <span class="field-error hidden" id="errMinProvisi"></span>
+                <span class="field-hint">Default Rp 1.000.000 — bisa disesuaikan (mis. Rp 300.000)</span>
+              </div>
+              <div class="form-row hidden" id="rowManualKuartal">
+                <label for="calcManualKuartal">Jumlah Kuartal <span class="label-hint">(jika tanpa tanggal)</span></label>
+                <input type="number" id="calcManualKuartal" class="form-input" min="1" step="1">
+                <span class="field-error hidden" id="errManualKuartal"></span>
+              </div>
+              <div class="form-row hidden" id="rowManualHari">
+                <label for="calcManualHari">Jumlah Hari <span class="label-hint">(jika tanpa tanggal)</span></label>
+                <input type="number" id="calcManualHari" class="form-input" min="1" step="1">
+                <span class="field-error hidden" id="errManualHari"></span>
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="calcTglBerlaku">Tanggal Berlaku <span class="label-hint" id="hintTglBerlaku"></span></label>
+              <input type="text" id="calcTglBerlaku" class="form-input" autocomplete="off" placeholder="DD/MM/YYYY" maxlength="10">
+              <span class="field-error hidden" id="errTglBerlaku"></span>
+            </div>
+            <div class="form-row">
+              <label for="calcTglBerakhir">Tanggal Berakhir <span class="label-hint" id="hintTglBerakhir"></span></label>
+              <input type="text" id="calcTglBerakhir" class="form-input" autocomplete="off" placeholder="DD/MM/YYYY" maxlength="10">
+              <span class="field-error hidden" id="errTglBerakhir"></span>
+            </div>
+            <div class="form-row form-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="calcGratisAdmin"> Gratis Administrasi
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="calcMgt"> MGT
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="calcFormatKhusus"> Format Khusus BG
+              </label>
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary" id="btnSaveToNotepad" disabled>Simpan ke Notepad</button>
+        </div>
+        <div class="calc-result-panel">
+          <h3 class="calc-result-title">Hasil Kalkulasi</h3>
+          <div class="calc-result-grid" id="calcResults">
+            <div class="result-row" id="rowHari">
+              <span class="result-label">Jumlah Hari</span>
+              <span class="result-value" id="resHari">—</span>
+            </div>
+            <div class="result-row" id="rowKuartal">
+              <span class="result-label">Jumlah Kuartal</span>
+              <span class="result-value" id="resKuartal">—</span>
+            </div>
+            <div class="result-row">
+              <span class="result-label">Rate</span>
+              <span class="result-value" id="resRate">—</span>
+            </div>
+            <div class="result-row hidden" id="rowMinimum">
+              <span class="result-label">Minimum Provisi</span>
+              <span class="result-value" id="resMinimum">—</span>
+            </div>
+            <div id="resApplicants" class="calc-applicants-result"></div>
+            <div class="result-row">
+              <span class="result-label">Total Provisi</span>
+              <span class="result-value result-highlight" id="resProvisi">—</span>
+            </div>
+            <div class="result-row">
+              <span class="result-label">Biaya Administrasi</span>
+              <span class="result-value" id="resAdmin">—</span>
+            </div>
+            <div class="result-row">
+              <span class="result-label">Biaya Format Khusus</span>
+              <span class="result-value" id="resFormat">—</span>
+            </div>
+            <div class="result-row result-total">
+              <span class="result-label">Total Biaya</span>
+              <span class="result-value" id="resTotal">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Konfirmasi hapus -->
+  <div class="modal-overlay hidden" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+    <div class="modal-box">
+      <p id="deleteModalTitle" class="modal-title">Hapus baris ini?</p>
+      <p class="modal-desc" id="deleteModalDesc"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="deleteCancel">Batal (Esc)</button>
+        <button type="button" class="btn btn-danger" id="deleteConfirm">Hapus (Enter)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
