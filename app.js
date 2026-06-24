@@ -294,7 +294,8 @@ const BGO = (function () {
         },
         notepadSearch: '',
         sortField: 'tanggal',
-        sortDir: 'desc'
+        sortDir: 'desc',
+        dashboardNotes: ''
       },
       meta: {
         lastSaved: null
@@ -316,6 +317,7 @@ const BGO = (function () {
         if (!parsed.settings.filters) parsed.settings.filters = defaultState().settings.filters;
         if (!parsed.settings.sortField) parsed.settings.sortField = 'tanggal';
         if (!parsed.settings.sortDir) parsed.settings.sortDir = 'desc';
+        if (typeof parsed.settings.dashboardNotes !== 'string') parsed.settings.dashboardNotes = '';
         parsed.applications.forEach(function (app) {
           app.namaFile = generateNamaFile(app);
         });
@@ -828,6 +830,7 @@ const BGO = (function () {
         statTotalPending: document.getElementById('statTotalPending'),
         statTotalProcess: document.getElementById('statTotalProcess'),
         statTotalDone: document.getElementById('statTotalDone'),
+        dashboardNotes: document.getElementById('dashboardNotes'),
         notepadSearch: document.getElementById('notepadSearch'),
         btnAddRow: document.getElementById('btnAddRow'),
         notepadBody: document.getElementById('notepadBody'),
@@ -1657,6 +1660,7 @@ const BGO = (function () {
       UI.renderFilterBar(UI.els.notepadFilters);
 
       UI.els.notepadSearch.value = state.settings.notepadSearch || '';
+      UI.els.dashboardNotes.value = state.settings.dashboardNotes || '';
 
       App.bindEvents();
       Calculator.bindEvents();
@@ -1673,6 +1677,11 @@ const BGO = (function () {
 
       UI.els.btnAddRow.addEventListener('click', function () {
         Notepad.addRow();
+      });
+
+      UI.els.dashboardNotes.addEventListener('input', function () {
+        state.settings.dashboardNotes = UI.els.dashboardNotes.value;
+        Storage.scheduleSave();
       });
 
       UI.els.notepadSearch.addEventListener('input', function () {

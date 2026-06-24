@@ -26,31 +26,45 @@
         <h2 class="view-title">Dashboard</h2>
         <div class="filter-bar" id="dashboardFilters"></div>
       </div>
-      <div class="stats-grid" id="statsGrid">
-        <div class="stat-card">
-          <span class="stat-label">Total Aplikasi</span>
-          <span class="stat-value" id="statTotalAplikasi">0</span>
+      <div class="dashboard-layout">
+        <div class="dashboard-main">
+          <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+              <span class="stat-label">Total Aplikasi</span>
+              <span class="stat-value" id="statTotalAplikasi">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Total Nilai BG</span>
+              <span class="stat-value" id="statTotalNilaiBG">Rp0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Total Provisi</span>
+              <span class="stat-value" id="statTotalProvisi">Rp0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Total Pending</span>
+              <span class="stat-value" id="statTotalPending">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Total Process</span>
+              <span class="stat-value" id="statTotalProcess">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Total Done</span>
+              <span class="stat-value" id="statTotalDone">0</span>
+            </div>
+          </div>
         </div>
-        <div class="stat-card">
-          <span class="stat-label">Total Nilai BG</span>
-          <span class="stat-value" id="statTotalNilaiBG">Rp0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Total Provisi</span>
-          <span class="stat-value" id="statTotalProvisi">Rp0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Total Pending</span>
-          <span class="stat-value" id="statTotalPending">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Total Process</span>
-          <span class="stat-value" id="statTotalProcess">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Total Done</span>
-          <span class="stat-value" id="statTotalDone">0</span>
-        </div>
+        <aside class="dashboard-notes-panel" aria-label="Catatan bebas">
+          <label class="dashboard-notes-label" for="dashboardNotes">Catatan</label>
+          <textarea
+            id="dashboardNotes"
+            class="dashboard-notes"
+            placeholder="Tulis catatan apa saja di sini..."
+            spellcheck="false"
+            autocomplete="off"
+          ></textarea>
+        </aside>
       </div>
     </section>
 
