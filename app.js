@@ -222,6 +222,37 @@ const BGO = (function () {
     });
   }
 
+  // ─── Keyboard helpers ─────────────────────────────────────────
+
+  const Keyboard = {
+    /** Deteksi Ctrl/Cmd + key tanpa Shift/Alt (hindari tab incognito Ctrl+Shift+N) */
+    isMod(e, code) {
+      return e.code === code && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey;
+    },
+
+    /** Enter = field berikutnya; commit blur dulu agar data tersimpan */
+    bindEnterNav(el, getOrder, onEnter) {
+      el.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || e.shiftKey) return;
+        e.preventDefault();
+        if (typeof onEnter === 'function' && onEnter(el, e) === true) return;
+        const current = el;
+        if (current.blur) current.blur();
+        requestAnimationFrame(function () {
+          const order = getOrder();
+          const idx = order.indexOf(current);
+          if (idx >= 0 && idx < order.length - 1) {
+            const next = order[idx + 1];
+            next.focus();
+            if (next.select && next.type !== 'checkbox' && next.tagName !== 'SELECT') {
+              try { next.select(); } catch (_) { /* noop */ }
+            }
+          }
+        });
+      });
+    }
+  };
+
   /** Record aplikasi kosong */
   function createEmptyApplication() {
     const now = nowISO();
@@ -263,7 +294,8 @@ const BGO = (function () {
         },
         notepadSearch: '',
         sortField: 'tanggal',
-        sortDir: 'desc'
+        sortDir: 'desc',
+        dashboardNotes: ''
       },
       meta: {
         lastSaved: null
@@ -285,6 +317,7 @@ const BGO = (function () {
         if (!parsed.settings.filters) parsed.settings.filters = defaultState().settings.filters;
         if (!parsed.settings.sortField) parsed.settings.sortField = 'tanggal';
         if (!parsed.settings.sortDir) parsed.settings.sortDir = 'desc';
+        if (typeof parsed.settings.dashboardNotes !== 'string') parsed.settings.dashboardNotes = '';
         parsed.applications.forEach(function (app) {
           app.namaFile = generateNamaFile(app);
         });
@@ -431,6 +464,15 @@ const BGO = (function () {
       return state.applications.find(function (app) { return app.id === id; });
     },
 
+    /** Cari record by nama applicant (case-insensitive) */
+    findByApplicant(name) {
+      const key = (name || '').trim().toLowerCase();
+      if (!key) return null;
+      return state.applications.find(function (app) {
+        return (app.applicant || '').trim().toLowerCase() === key;
+      }) || null;
+    },
+
     /** Update field pada record */
     updateField(id, field, value) {
       const app = Data.findById(id);
@@ -492,6 +534,30 @@ const BGO = (function () {
       state.applications.unshift(app);
       Storage.scheduleSave();
       return app;
+    },
+
+    /** Update record existing dari hasil kalkulator */
+    updateFromCalculator(id, entry) {
+      const app = Data.findById(id);
+      if (!app) return null;
+      app.nilaiBG = entry.nilaiBG;
+      app.nilaiProvisi = entry.nilaiProvisi;
+      app.jenisBG = entry.jenisBG;
+      app.tanggal = todayISO();
+      app.namaFile = generateNamaFile(app);
+      app.updatedAt = nowISO();
+      Storage.scheduleSave();
+      return app;
+    },
+
+    /**
+     * Simpan dari kalkulator: update baris jika applicant sudah ada,
+     * otherwise buat baris baru.
+     */
+    saveFromCalculator(entry) {
+      const existing = Data.findByApplicant(entry.applicant);
+      if (existing) return Data.updateFromCalculator(existing.id, entry);
+      return Data.addFromCalculator(entry);
     }
   };
 
@@ -764,6 +830,7 @@ const BGO = (function () {
         statTotalPending: document.getElementById('statTotalPending'),
         statTotalProcess: document.getElementById('statTotalProcess'),
         statTotalDone: document.getElementById('statTotalDone'),
+        dashboardNotes: document.getElementById('dashboardNotes'),
         notepadSearch: document.getElementById('notepadSearch'),
         btnAddRow: document.getElementById('btnAddRow'),
         notepadBody: document.getElementById('notepadBody'),
@@ -903,6 +970,9 @@ const BGO = (function () {
           Notepad.render();
           UI.syncFilterBars();
         });
+        Keyboard.bindEnterNav(el, function () {
+          return Array.from(container.querySelectorAll('[data-filter]'));
+        });
       });
 
       container.querySelector('[data-action="reset-filters"]').addEventListener('click', function () {
@@ -957,6 +1027,35 @@ const BGO = (function () {
   // ─── Notepad ───────────────────────────────────────────────────
 
   const Notepad = {
+    /** Urutan fokus field di tabel notepad (per baris, kiri ke kanan) */
+    getTabOrder() {
+      const order = [];
+      UI.els.notepadBody.querySelectorAll('tr').forEach(function (row) {
+        row.querySelectorAll('[data-field]').forEach(function (el) {
+          if (el.readOnly || el.dataset.action === 'copy-namafile') return;
+          order.push(el);
+        });
+      });
+      return order;
+    },
+
+    focusNextField(current) {
+      if (current && current.blur) current.blur();
+      requestAnimationFrame(function () {
+        const order = Notepad.getTabOrder();
+        const idx = order.indexOf(current);
+        if (idx >= 0 && idx < order.length - 1) {
+          const next = order[idx + 1];
+          next.focus();
+          if (next.select && next.type !== 'checkbox' && next.tagName !== 'SELECT') {
+            try { next.select(); } catch (_) { /* noop */ }
+          }
+        } else if (idx === order.length - 1) {
+          Notepad.addRow();
+        }
+      });
+    },
+
     /** Fokus ke input pertama baris baru */
     focusNewRow(id) {
       requestAnimationFrame(function () {
@@ -1089,6 +1188,12 @@ const BGO = (function () {
             if (field === 'namaCabang') UI.syncFilterBars();
           });
         }
+
+        el.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' || e.shiftKey) return;
+          e.preventDefault();
+          Notepad.focusNextField(el);
+        });
       });
 
       tbody.querySelectorAll('[data-action="delete"]').forEach(function (btn) {
@@ -1226,13 +1331,22 @@ const BGO = (function () {
     },
 
     focusNextField(current) {
-      const order = Calculator.getTabOrder();
-      const idx = order.indexOf(current);
-      if (idx >= 0 && idx < order.length - 1) {
-        const next = order[idx + 1];
-        next.focus();
-        if (next.select && next.type !== 'checkbox') next.select();
+      if (current === UI.els.btnSaveToNotepad && !UI.els.btnSaveToNotepad.disabled) {
+        Calculator.saveToNotepad();
+        return;
       }
+      if (current && current.blur) current.blur();
+      requestAnimationFrame(function () {
+        const orderNow = Calculator.getTabOrder();
+        const idxNow = orderNow.indexOf(current);
+        if (idxNow >= 0 && idxNow < orderNow.length - 1) {
+          const next = orderNow[idxNow + 1];
+          next.focus();
+          if (next.select && next.type !== 'checkbox' && next.tagName !== 'SELECT') {
+            try { next.select(); } catch (_) { /* noop */ }
+          }
+        }
+      });
     },
 
     /** Toggle panel tarif khusus & opsional tanggal */
@@ -1405,20 +1519,21 @@ const BGO = (function () {
         return;
       }
       const result = lastCalcResult || Provision.calculate(input);
-      let firstId = null;
-      result.applicants.slice().reverse().forEach(function (a) {
-        const app = Data.addFromCalculator({
+      let focusId = null;
+      result.applicants.forEach(function (a) {
+        const app = Data.saveFromCalculator({
           applicant: a.name,
           nilaiBG: input.nilaiBG,
           nilaiProvisi: a.provisi,
           jenisBG: input.jenisBG
         });
-        if (!firstId) firstId = app.id;
+        if (!focusId) focusId = app.id;
       });
+      Notepad.render();
       Dashboard.render();
       UI.syncFilterBars();
       UI.switchView('notepad');
-      if (firstId) Notepad.focusNewRow(firstId);
+      if (focusId) Notepad.focusNewRow(focusId);
     },
 
     onDateInput(el) {
@@ -1445,6 +1560,9 @@ const BGO = (function () {
     bindEvents() {
       Calculator.initApplicants();
       UI.els.btnAddApplicant.addEventListener('click', Calculator.addApplicantRow);
+      Calculator.bindEnterNav(UI.els.btnAddApplicant);
+      Calculator.bindEnterNav(UI.els.calcTarifKhusus);
+      Calculator.bindEnterNav(UI.els.btnSaveToNotepad);
 
       [UI.els.calcCover, UI.els.calcJenisBG].forEach(function (el) {
         el.addEventListener('input', Calculator.recalculate);
@@ -1542,6 +1660,7 @@ const BGO = (function () {
       UI.renderFilterBar(UI.els.notepadFilters);
 
       UI.els.notepadSearch.value = state.settings.notepadSearch || '';
+      UI.els.dashboardNotes.value = state.settings.dashboardNotes || '';
 
       App.bindEvents();
       Calculator.bindEvents();
@@ -1560,10 +1679,29 @@ const BGO = (function () {
         Notepad.addRow();
       });
 
+      UI.els.dashboardNotes.addEventListener('input', function () {
+        state.settings.dashboardNotes = UI.els.dashboardNotes.value;
+        Storage.scheduleSave();
+      });
+
       UI.els.notepadSearch.addEventListener('input', function () {
         state.settings.notepadSearch = UI.els.notepadSearch.value;
         Storage.scheduleSave();
         Notepad.render();
+      });
+
+      Keyboard.bindEnterNav(UI.els.notepadSearch, function () {
+        const order = [UI.els.notepadSearch];
+        const first = Notepad.getTabOrder()[0];
+        if (first) order.push(first);
+        return order;
+      }, function (el) {
+        const first = Notepad.getTabOrder()[0];
+        if (first) {
+          el.blur();
+          requestAnimationFrame(function () { first.focus(); });
+        }
+        return true;
       });
 
       document.querySelectorAll('#notepadTable th.sortable').forEach(function (th) {
@@ -1593,20 +1731,24 @@ const BGO = (function () {
         }
       });
 
-      document.addEventListener('keydown', function (e) {
-        if (UI.els.deleteModal.classList.contains('hidden')) {
-          if (e.ctrlKey && e.key === 'n') {
-            e.preventDefault();
-            if (state.settings.activeView === 'notepad') Notepad.addRow();
-          }
-          if (e.ctrlKey && e.key === 'f') {
-            e.preventDefault();
-            if (state.settings.activeView !== 'notepad') UI.switchView('notepad');
-            UI.els.notepadSearch.focus();
-            UI.els.notepadSearch.select();
-          }
+      window.addEventListener('keydown', function (e) {
+        if (!UI.els.deleteModal.classList.contains('hidden')) return;
+
+        if (Keyboard.isMod(e, 'KeyN')) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          if (state.settings.activeView !== 'notepad') UI.switchView('notepad');
+          Notepad.addRow();
+          return;
         }
-      });
+        if (Keyboard.isMod(e, 'KeyF')) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          if (state.settings.activeView !== 'notepad') UI.switchView('notepad');
+          UI.els.notepadSearch.focus();
+          UI.els.notepadSearch.select();
+        }
+      }, true);
     }
   };
 
